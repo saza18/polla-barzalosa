@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollas FC Barzalosa - Colombia vs Portugal</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --yellow-col: #facc15;
+            --blue-col: #1d4ed8;
+            --red-col: #dc2626;
+            --green-por: #16a34a;
+            --accent: #3b82f6;
+            --border: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* --- MODAL DE INICIO DE SESIÓN Y ROLES --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            /* Fondo de la bandera de Colombia con opacidad para diseño moderno */
+            background: linear-gradient(to bottom, 
+                rgba(252, 209, 22, 0.95) 0%, rgba(252, 209, 22, 0.95) 50%, 
+                rgba(0, 56, 147, 0.95) 50%, rgba(0, 56, 147, 0.95) 75%, 
+                rgba(206, 17, 38, 0.95) 75%, rgba(206, 17, 38, 0.95) 100%);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+        }
+
+        .modal-box h2 {
+            margin-bottom: 20px;
+            color: var(--yellow-col);
+            text-transform: uppercase;
+        }
+
+        .role-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        .role-btn:hover { filter: brightness(1.2); }
+        .role-btn:active { transform: scale(0.98); }
+
+        .btn-apostador { background: var(--accent); color: white; }
+        .btn-admin { background: #475569; color: white; border: 1px solid #64748b; }
+
+        .login-form {
+            display: none; /* Oculto por defecto, se muestra al elegir admin */
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: var(--green-por);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-back {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            margin-top: 15px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            display: none; /* Se muestra después de elegir rol */
+        }
+
+        /* Banner Principal */
+        .header-banner {
+            width: 100%;
+            height: 350px; 
+            overflow: hidden;
+            border-bottom: 4px solid var(--yellow-col);
+            background-color: #000; 
+        }
+
+        .header-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            object-position: top center; 
+            display: block;
+        }
+
+        /* Información del Partido */
+        .match-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.4);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .info-card .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .info-card .value { font-size: 1.1rem; font-weight: bold; color: var(--text-light); }
+        .info-card .value.highlight { color: var(--yellow-col); }
+        .info-card .value.nequi { color: #e11d48; }
+
+        /* Formulario de Entrada y Marcador */
+        .form-section {
+            padding: 25px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        .form-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .header-banner { height: 200px; }
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        .input-group input {
+            background: var(--bg-input); border: 1px solid var(--border);
+            color: white; padding: 10px 12px; border-radius: 6px; outline: none;
+        }
+        .input-group input:focus { border-color: var(--accent); }
+
+        .btn-submit {
+            background: var(--green-por); color: white; border: none; padding: 11px 24px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px;
+        }
+
+        /* Tabla de Resultados */
+        .table-section { padding: 20px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        th {
+            background-color: #0f172a; color: var(--text-muted); padding: 12px;
+            font-weight: 600; text-transform: uppercase; font-size: 0.8rem; border-bottom: 2px solid var(--border);
+        }
+        td { padding: 12px; border-bottom: 1px solid rgba(71, 85, 105, 0.4); color: var(--text-light); }
+        tr:nth-child(even) { background-color: rgba(15, 23, 42, 0.2); }
+
+        .col-index { font-weight: bold; color: var(--text-muted); width: 50px; }
+        
+        .badge {
+            padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: inline-block;
+        }
+        .badge-pending { background-color: #854d0e; color: #fef08a; }
+        .badge-approved { background-color: #14532d; color: #86efac; }
+
+        /* Botones de Administrador */
+        .admin-actions { display: flex; gap: 5px; justify-content: center; }
+        .btn-action {
+            border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
+        }
+        .btn-approve { background: var(--green-por); color: white; }
+        .btn-reject { background: var(--red-col); color: white; }
+
+        .admin-banner {
+            background: #eab308; color: #000; text-align: center; padding: 5px; font-weight: bold; font-size: 0.9rem; text-transform: uppercase;
+        }
+
+        /* Botón de Regresar (Salir) */
+        .top-bar {
+            background: var(--bg-card);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: flex-end;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .btn-logout {
+            background: var(--bg-input);
+            color: white;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .btn-logout:hover {
+            background: var(--border);
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- MODAL DE SELECCIÓN DE ROL -->
+<div id="modal-role" class="modal-overlay">
+    <div class="modal-box" id="role-selection-box">
+        <h2>Selecciona tu perfil</h2>
+        <button class="role-btn btn-apostador" onclick="iniciarComo('apostador')">⚽ Soy Apostador</button>
+        <button class="role-btn btn-admin" onclick="mostrarLoginAdmin()">⚙️ Soy Administrador</button>
+    </div>
+
+    <div class="modal-box login-form" id="admin-login-box">
+        <h2>Acceso Administrador</h2>
+        <input type="text" id="admin-user" placeholder="Usuario">
+        <input type="password" id="admin-pass" placeholder="Contraseña">
+        <button class="btn-login" onclick="iniciarComo('admin')">Ingresar</button>
+        <button class="btn-back" onclick="volverARoles()">Volver</button>
+    </div>
+</div>
+
+<div class="container" id="main-app">
+    <!-- Barra superior con botón de regresar -->
+    <div class="top-bar">
+        <button class="btn-logout" onclick="volverAlMenuPrincipal()">🔙 Cambiar Perfil / Regresar</button>
+    </div>
+
+    <!-- Banner de Admin (Solo visible para administrador) -->
+    <div id="admin-top-banner" class="admin-banner" style="display: none;">
+        MODO ADMINISTRADOR ACTIVO - PUEDES APROBAR O ELIMINAR APUESTAS
+    </div>
+
+    <!-- Banner Principal -->
+    <div class="header-banner">
+        <img src="Pollas FC Barzalosa.png" alt="Banner Colombia vs Portugal" class="header-logo" onerror="this.onerror=null; this.parentNode.style.background='#1e3a8a'; this.style.display='none';">
+    </div>
+
+    <!-- Tarjetas de Información -->
+    <div class="match-info-grid">
+        <div class="info-card"><span class="label">Fecha</span><span class="value">27/06/2026</span></div>
+        <div class="info-card"><span class="label">Cierre</span><span class="value">6:30 PM</span></div>
+        <div class="info-card"><span class="label">Valor</span><span class="value highlight">$10.000 COP</span></div>
+        <div class="info-card"><span class="label">Nequi / Llave</span><span class="value nequi">3227277046</span></div>
+    </div>
+
+    <!-- SECCIÓN NUEVA: Cronómetro de Cierre -->
+    <div id="countdown-banner" style="background: var(--red-col); text-align: center; padding: 12px; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px;">
+        ⏳ Cierre de apuestas en: <span id="timer-display" style="font-family: monospace; font-size: 1.3rem; margin-left: 10px;">Cargando...</span>
+    </div>
+
+    <!-- SECCIÓN NUEVA: Marcador Final del Partido -->
+    <div class="form-section" id="final-score-section" style="text-align: center; border-bottom: 4px solid var(--accent); background: rgba(15, 23, 42, 0.7);">
+        <h2 style="justify-content: center; font-size: 1.5rem; margin-bottom: 10px;">Marcador Final Oficial</h2>
+        
+        <!-- Texto de visualización para ambos perfiles -->
+        <div id="final-score-text" style="font-size: 2rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px;">
+            ⏳ Pendiente
+        </div>
+
+        <!-- Controles exclusivos para Administrador -->
+        <div id="score-admin-controls" style="display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 0 auto; max-width: 400px;">
+            <p style="color: var(--red-col); font-weight: bold; margin-bottom: 10px;">Fijar resultado y cerrar polla:</p>
+            <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 15px;">
+                <input type="number" id="final-col" min="0" placeholder="COL" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
+                <span style="font-size: 1.5rem; font-weight: bold;">-</span>
+                <input type="number" id="final-por" min="0" placeholder="POR" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
+            </div>
+            <button class="btn-submit" onclick="finalizarPartido()" style="background: var(--red-col); width: 100%;">Finalizar Partido</button>
+        </div>
+    </div>
+
+    <!-- Formulario de Registro (Visible para apostadores) -->
+    <div class="form-section" id="betting-form-section">
+        <h2>Ingresar Pronóstico (Fila Actual: <span id="next-row-badge" style="color: var(--yellow-col);">1</span>)</h2>
+        <form id="bet-form" onsubmit="registrarApuesta(event)">
+            <div class="form-grid">
+                <div class="input-group">
+                    <label for="nombre">Nombre del Participante</label>
+                    <input type="text" id="nombre" required>
+                </div>
+                <div class="input-group">
+                    <label for="score-col">Goles COL 🇨🇴</label>
+                    <input type="number" id="score-col" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label for="score-por">Goles POR 🇵🇹</label>
+                    <input type="number" id="score-por" min="0" required>
+                </div>
+                <button type="submit" id="submit-btn" class="btn-submit">Registrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de Clasificación -->
+    <div class="table-section">
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>Participante</th>
+                    <th style="text-align: center;">COL 🇨🇴</th>
+                    <th style="text-align: center;">POR 🇵🇹</th>
+                    <th style="text-align: center;">Marcador</th>
+                    <th style="text-align: center;">Registro</th>
+                    <th style="text-align: center;" id="th-estado">Estado de Pago</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Generado por JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // --- ESTADO GLOBAL DE LA APLICACIÓN ---
+    let rolActual = null; 
+    let apuestas = [];    
+    const maxRows = 15;
+    
+    // Variables de Estado del Partido
+    let partidoFinalizado = false;
+    let marcadorFinalCol = null;
+    let marcadorFinalPor = null;
+
+    // Variables del Cronómetro
+    const fechaCierre = new Date('June 27, 2026 18:25:00').getTime();
+    let tiempoAgotado = false;
+
+    // --- LÓGICA DE CRONÓMETRO Y CIERRE ---
+    function iniciarCronometro() {
+        const timerInverval = setInterval(() => {
+            if (partidoFinalizado) {
+                clearInterval(timerInverval);
+                document.getElementById('countdown-banner').style.display = 'none';
+                return;
+            }
+
+            const ahora = new Date().getTime();
+            const distancia = fechaCierre - ahora;
+            const timerDisplay = document.getElementById('timer-display');
+            const countdownBanner = document.getElementById('countdown-banner');
+
+            if (distancia < 0) {
+                clearInterval(timerInverval);
+                tiempoAgotado = true;
+                if(timerDisplay) timerDisplay.textContent = "00:00:00";
+                if(countdownBanner) {
+                    countdownBanner.innerHTML = "🚫 SE CERRARON LAS APUESTAS";
+                    countdownBanner.style.background = "#000";
+                    countdownBanner.style.color = "var(--red-col)";
+                    countdownBanner.style.borderBottom = "2px solid var(--red-col)";
+                }
+                bloquearFormulario();
+                return;
+            }
+
+            const horas = Math.floor((distancia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutos = Math.floor((distancia % (1000 * 60 * 60)) / (1000 * 60));
+            const segundos = Math.floor((distancia % (1000 * 60)) / 1000);
+
+            if(timerDisplay) {
+                timerDisplay.textContent = 
+                    (horas < 10 ? "0" : "") + horas + ":" + 
+                    (minutos < 10 ? "0" : "") + minutos + ":" + 
+                    (segundos < 10 ? "0" : "") + segundos;
+            }
+        }, 1000);
+    }
+
+    function bloquearFormulario() {
+        const btn = document.getElementById('submit-btn');
+        const nombre = document.getElementById('nombre');
+        const col = document.getElementById('score-col');
+        const por = document.getElementById('score-por');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Apuestas Cerradas";
+        }
+        if (nombre) nombre.disabled = true;
+        if (col) col.disabled = true;
+        if (por) por.disabled = true;
+        
+        const badge = document.getElementById('next-row-badge');
+        if(badge && !partidoFinalizado && apuestas.length < maxRows) {
+            badge.textContent = "Cerrado";
+            badge.style.color = "var(--red-col)";
+        }
+    }
+
+    // Iniciar cronómetro al cargar el script
+    iniciarCronometro();
+
+    // --- LÓGICA DE INTERFAZ Y LOGIN ---
+    function mostrarLoginAdmin() {
+        document.getElementById('role-selection-box').style.display = 'none';
+        document.getElementById('admin-login-box').style.display = 'block';
+    }
+
+    function volverARoles() {
+        document.getElementById('admin-login-box').style.display = 'none';
+        document.getElementById('role-selection-box').style.display = 'block';
+    }
+
+    function iniciarComo(rol) {
+        if (rol === 'admin') {
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            
+            // Credenciales seguras (Quemadas en código para esta versión local)
+            if (user !== 'admin' || pass !== 'admin123') {
+                alert("Credenciales incorrectas.");
+                return;
+            }
+        }
+
+        rolActual = rol;
+        document.getElementById('modal-role').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+
+        // Adaptar la UI según el rol
+        if (rolActual === 'admin') {
+            document.getElementById('betting-form-section').style.display = 'none';
+            document.getElementById('admin-top-banner').style.display = 'block';
+            document.getElementById('th-estado').textContent = 'Acciones de Admin';
+            
+            // Mostrar panel de control de score solo si el partido no ha terminado
+            document.getElementById('score-admin-controls').style.display = partidoFinalizado ? 'none' : 'block';
+        } else {
+            // Mostrar formulario de apuestas solo si el partido no ha terminado
+            document.getElementById('betting-form-section').style.display = partidoFinalizado ? 'none' : 'block';
+            document.getElementById('admin-top-banner').style.display = 'none';
+            document.getElementById('th-estado').textContent = 'Estado de Pago';
+            document.getElementById('score-admin-controls').style.display = 'none';
+        }
+
+        actualizarVistaMarcador();
+        renderizarTabla();
+    }
+
+    function volverAlMenuPrincipal() {
+        rolActual = null;
+        
+        // Ocultar app principal y mostrar el fondo de la bandera
+        document.getElementById('main-app').style.display = 'none';
+        document.getElementById('modal-role').style.display = 'flex';
+        
+        // Restablecer el modal a los botones principales
+        document.getElementById('admin-login-box').style.display = 'none';
+        document.getElementById('role-selection-box').style.display = 'block';
+        
+        // Limpiar las credenciales ingresadas por seguridad
+        document.getElementById('admin-user').value = '';
+        document.getElementById('admin-pass').value = '';
+    }
+
+    // --- LÓGICA DE MARCADOR FINAL ---
+    function finalizarPartido() {
+        const col = document.getElementById('final-col').value;
+        const por = document.getElementById('final-por').value;
+
+        if (col === '' || por === '') {
+            alert("Debes ingresar los goles de ambos equipos para finalizar.");
+            return;
+        }
+
+        if (confirm("🚨 ¿Estás seguro de finalizar el partido con este marcador? Ya no se recibirán más apuestas y se calcularán los ganadores.")) {
+            partidoFinalizado = true;
+            marcadorFinalCol = parseInt(col);
+            marcadorFinalPor = parseInt(por);
+            
+            // Ocultar los controles de edición del admin ya que se finalizó
+            document.getElementById('score-admin-controls').style.display = 'none'; 
+            
+            actualizarVistaMarcador();
+            renderizarTabla(); // Vuelve a dibujar la tabla para mostrar los trofeos
+        }
+    }
+
+    function actualizarVistaMarcador() {
+        const scoreText = document.getElementById('final-score-text');
+        
+        if (partidoFinalizado) {
+            scoreText.innerHTML = `🇨🇴 <span style="color: var(--yellow-col); font-size: 2.5rem; margin: 0 10px;">${marcadorFinalCol} - ${marcadorFinalPor}</span> 🇵🇹`;
+            scoreText.style.color = "white";
+        } else {
+            scoreText.innerHTML = "⏳ Pendiente";
+            scoreText.style.color = "var(--text-muted)";
+        }
+    }
+
+    // --- LÓGICA DE DATOS Y APUESTAS ---
+    function registrarApuesta(event) {
+        event.preventDefault();
+
+        if (tiempoAgotado) {
+            alert('Las apuestas ya se han cerrado. El partido está por comenzar.');
+            return;
+        }
+
+        if (apuestas.length >= maxRows) {
+            alert('Límite máximo de 15 apuestas alcanzado.');
+            return;
+        }
+
+        const nombre = document.getElementById('nombre').value.trim();
+        const golesCol = document.getElementById('score-col').value;
+        const golesPor = document.getElementById('score-por').value;
+        
+        const ahora = new Date();
+        const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        // Guardar datos en el array de memoria
+        apuestas.push({
+            nombre: nombre,
+            col: golesCol,
+            por: golesPor,
+            hora: horaFormateada,
+            pagado: false // Inicia sin pagar
+        });
+
+        // Limpiar formulario
+        document.getElementById('nombre').value = '';
+        document.getElementById('score-col').value = '';
+        document.getElementById('score-por').value = '';
+
+        // Actualizar UI
+        renderizarTabla();
+
+        // Bloquear si se llena
+        if (apuestas.length >= maxRows) {
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('next-row-badge').textContent = "Lleno";
+            document.getElementById('next-row-badge').style.color = "var(--red-col)";
+        } else {
+            document.getElementById('next-row-badge').textContent = apuestas.length + 1;
+        }
+
+        // --- REDIRECCIÓN WHATSAPP ---
+        const numeroAdmin = "573177198490"; 
+        const mensajeTexto = `Hola, acabo de registrar mi pronóstico en la polla a nombre de ${nombre}. Mi marcador fue Colombia ${golesCol} - ${golesPor} Portugal. Aquí te envío el comprobante de pago de los $10.000.`;
+        window.open(`https://wa.me/${numeroAdmin}?text=${encodeURIComponent(mensajeTexto)}`, '_blank');
+    }
+
+    // --- FUNCIONES DE ADMINISTRADOR ---
+    function validarPago(index) {
+        if(confirm(`¿Confirmas que recibiste el pago de ${apuestas[index].nombre}?`)) {
+            apuestas[index].pagado = true;
+            renderizarTabla();
+        }
+    }
+
+    function eliminarApuesta(index) {
+        if(confirm(`¿Estás seguro de eliminar la apuesta de ${apuestas[index].nombre} por falta de pago?`)) {
+            apuestas.splice(index, 1); // Borra el elemento del array
+            
+            // Habilitar formulario si se liberó espacio y el partido no ha terminado ni se ha agotado el tiempo
+            if (apuestas.length < maxRows && rolActual === 'apostador' && !partidoFinalizado && !tiempoAgotado) {
+                document.getElementById('submit-btn').disabled = false;
+                document.getElementById('next-row-badge').textContent = apuestas.length + 1;
+                document.getElementById('next-row-badge').style.color = "var(--yellow-col)";
+            }
+            renderizarTabla();
+        }
+    }
+
+    // --- RENDERIZADO DEL MOTOR DE LA TABLA ---
+    function renderizarTabla() {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < maxRows; i++) {
+            const tr = document.createElement('tr');
+            
+            if (i < apuestas.length) {
+                // Fila con datos reales
+                const apuesta = apuestas[i];
+                let estadoHTML = '';
+
+                // Lógica de Renderizado del Estado
+                if (rolActual === 'admin') {
+                    if (apuesta.pagado) {
+                        if (partidoFinalizado && apuesta.col == marcadorFinalCol && apuesta.por == marcadorFinalPor) {
+                            estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
+                        } else if (partidoFinalizado) {
+                            estadoHTML = `<span class="badge" style="background-color: var(--border); color: white;">Perdió</span>`;
+                        } else {
+                            estadoHTML = `<span class="badge badge-approved">Pago Aprobado ✅</span>`;
+                        }
+                    } else {
+                        // Si no ha pagado, pero el partido ya acabó, pierde la oportunidad de ser validado
+                        if (partidoFinalizado) {
+                             estadoHTML = `<span class="badge" style="background-color: var(--red-col); color: white;">No Jugó (Sin Pago)</span>`;
+                        } else {
+                            estadoHTML = `
+                                <div class="admin-actions">
+                                    <button class="btn-action btn-approve" onclick="validarPago(${i})">✅ Validar</button>
+                                    <button class="btn-action btn-reject" onclick="eliminarApuesta(${i})">❌ Borrar</button>
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    // Vista de apostador normal
+                    if (apuesta.pagado) {
+                        if (partidoFinalizado && apuesta.col == marcadorFinalCol && apuesta.por == marcadorFinalPor) {
+                            estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
+                        } else if (partidoFinalizado) {
+                            estadoHTML = `<span class="badge" style="background-color: var(--border); color: white;">Perdió</span>`;
+                        } else {
+                            estadoHTML = `<span class="badge badge-approved">Pagado ✅</span>`;
+                        }
+                    } else {
+                        if (partidoFinalizado) {
+                            estadoHTML = `<span class="badge" style="background-color: var(--red-col); color: white;">Anulado (Sin Pago)</span>`;
+                        } else {
+                            estadoHTML = `<span class="badge badge-pending">⏳ Esperando Pago</span>`;
+                        }
+                    }
+                }
+
+                // Si es ganador, resaltamos toda la fila con un borde dorado sutil
+                const filaGanadoraStyle = (partidoFinalizado && apuesta.pagado && apuesta.col == marcadorFinalCol && apuesta.por == marcadorFinalPor) 
+                                          ? 'background-color: rgba(234, 179, 8, 0.15); border-left: 4px solid var(--yellow-col);' 
+                                          : '';
+
+                tr.innerHTML = `
+                    <td class="col-index" style="${filaGanadoraStyle}">${i + 1}</td>
+                    <td style="font-weight: bold; ${filaGanadoraStyle}">${apuesta.nombre}</td>
+                    <td style="text-align: center; ${filaGanadoraStyle}">${apuesta.col}</td>
+                    <td style="text-align: center; ${filaGanadoraStyle}">${apuesta.por}</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--yellow-col); ${filaGanadoraStyle}">${apuesta.col} - ${apuesta.por}</td>
+                    <td style="text-align: center; color: var(--text-muted); ${filaGanadoraStyle}">${apuesta.hora}</td>
+                    <td style="text-align: center; ${filaGanadoraStyle}">${estadoHTML}</td>
+                `;
+            } else {
+                // Fila vacía de relleno
+                tr.innerHTML = `
+                    <td class="col-index">${i + 1}</td>
+                    <td style="color: var(--text-muted); font-style: italic;">Vacío</td>
+                    <td style="text-align: center;">-</td>
+                    <td style="text-align: center;">-</td>
+                    <td style="text-align: center;">-</td>
+                    <td style="text-align: center;">-</td>
+                    <td style="text-align: center;">-</td>
+                `;
+            }
+            tbody.appendChild(tr);
+        }
+    }
+
+</script>
+
+</body>
+</html>
