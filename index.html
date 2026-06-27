@@ -8,7 +8,8 @@
     <!-- FIREBASE SDKS (MOTOR DE BASE DE DATOS) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // SE AGREGAN LAS FUNCIONES 'getDocs' Y 'writeBatch' NECESARIAS PARA EL BORRADO MASIVO
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuración de tu proyecto
         const firebaseConfig = {
@@ -33,6 +34,8 @@
         window.doc = doc;
         window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
+        window.getDocs = getDocs;       // Novedad: para buscar qué borrar
+        window.writeBatch = writeBatch; // Novedad: para borrar todo junto
 
         // Iniciar la escucha en tiempo real
         iniciarSincronizacion();
@@ -171,12 +174,13 @@
             display: none; 
         }
 
-        /* Botón de Regresar (Salir) */
+        /* Botón de Regresar (Salir) y Botón de Reinicio */
         .top-bar {
             background: var(--bg-card);
             padding: 10px 20px;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between; /* Modificado para separar botones */
+            align-items: center;
             border-bottom: 1px solid var(--border);
         }
         
@@ -196,6 +200,25 @@
         
         .btn-logout:hover {
             background: var(--border);
+        }
+        
+        /* Nuevo Botón de Reinicio */
+        .btn-reset-data {
+            background: #7f1d1d;
+            color: white;
+            border: 1px solid #b91c1c;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none; /* Se oculta por defecto, se muestra solo en modo admin */
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .btn-reset-data:hover {
+            background: #991b1b;
         }
 
         .admin-banner {
@@ -366,8 +389,9 @@
 </div>
 
 <div class="container" id="main-app">
-    <!-- Barra superior con botón de regresar -->
+    <!-- Barra superior con botón de regresar y botón de reinicio -->
     <div class="top-bar">
+        <button id="btn-reset-all" class="btn-reset-data" onclick="reiniciarPolla()">⚠️ Reiniciar Todo</button>
         <button class="btn-logout" onclick="volverAlMenuPrincipal()">🔙 Cambiar Perfil / Regresar</button>
     </div>
 
@@ -518,7 +542,6 @@
                 marcadorFinalCol = data.marcadorCol;
                 marcadorFinalPor = data.marcadorPor;
             } else {
-                // Si el documento no existe aún en Firebase, lo asumimos como no finalizado
                 partidoFinalizado = false;
             }
             actualizarVistaMarcador();
@@ -531,7 +554,7 @@
             apuestas = []; 
             snapshot.forEach((doc) => {
                 let data = doc.data();
-                data.id = doc.id; // Guarda el ID único que le da Firebase a cada fila
+                data.id = doc.id; 
                 apuestas.push(data);
             });
             renderizarTabla();
@@ -545,7 +568,6 @@
             document.getElementById('next-row-badge').textContent = "Lleno";
             document.getElementById('next-row-badge').style.color = "var(--red-col)";
         } else {
-            // Solo habilitar si no se acabó el tiempo y si el partido no está finalizado
             document.getElementById('submit-btn').disabled = tiempoAgotado || partidoFinalizado;
             document.getElementById('next-row-badge').textContent = apuestas.length + 1;
             document.getElementById('next-row-badge').style.color = "var(--yellow-col)";
@@ -580,11 +602,13 @@
         if (rolActual === 'admin') {
             document.getElementById('betting-form-section').style.display = 'none';
             document.getElementById('admin-top-banner').style.display = 'block';
+            document.getElementById('btn-reset-all').style.display = 'flex'; // Mostrar botón de reinicio
             document.getElementById('th-estado').textContent = 'Acciones de Admin';
             document.getElementById('score-admin-controls').style.display = partidoFinalizado ? 'none' : 'block';
         } else {
             document.getElementById('betting-form-section').style.display = (partidoFinalizado || tiempoAgotado) ? 'none' : 'block';
             document.getElementById('admin-top-banner').style.display = 'none';
+            document.getElementById('btn-reset-all').style.display = 'none'; // Ocultar botón de reinicio
             document.getElementById('th-estado').textContent = 'Estado de Pago';
             document.getElementById('score-admin-controls').style.display = 'none';
         }
@@ -603,7 +627,7 @@
         document.getElementById('admin-pass').value = '';
     }
 
-    // --- LÓGICA DE MARCADOR FINAL (Conecta a Firebase) ---
+    // --- LÓGICA DE MARCADOR FINAL ---
     async function finalizarPartido() {
         const col = document.getElementById('final-col').value;
         const por = document.getElementById('final-por').value;
@@ -614,11 +638,8 @@
         }
 
         if (confirm("🚨 ¿Estás seguro de finalizar el partido con este marcador? Nadie más podrá apostar y se calcularán los ganadores.")) {
-            // Se envía a Firestore la configuración global
-            // IMPORTANTE: Si es la primera vez que se presiona, crea el documento 'estadoPartido'
             const configRef = window.doc(window.db, "config", "estadoPartido");
             try {
-                // SetDoc con merge true actúa como un Update pero lo crea si no existe
                 import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((module) => {
                      module.setDoc(configRef, {
                         finalizado: true,
@@ -643,7 +664,7 @@
         }
     }
 
-    // --- REGISTRAR APUESTA (Conecta a Firebase) ---
+    // --- REGISTRAR APUESTA ---
     async function registrarApuesta(event) {
         event.preventDefault();
 
@@ -658,14 +679,13 @@
         try {
             document.getElementById('submit-btn').disabled = true;
 
-            // Envía la fila a Firestore
             await window.addDoc(window.collection(window.db, "apuestas"), {
                 nombre: nombre,
                 col: parseInt(golesCol),
                 por: parseInt(golesPor),
                 hora: horaFormateada,
                 pagado: false,
-                timestamp: ahora.getTime() // Se guarda como número para que Firebase ordene bien las filas
+                timestamp: ahora.getTime() 
             });
 
             document.getElementById('nombre').value = '';
@@ -681,18 +701,55 @@
         }
     }
 
-    // --- FUNCIONES DE ADMINISTRADOR (Conecta a Firebase) ---
+    // --- FUNCIONES DE ADMINISTRADOR ---
     async function validarPago(docId) {
         if(confirm(`¿Confirmas que recibiste el pago de esta apuesta?`)) {
-            // Actualiza solo la propiedad 'pagado' del documento específico en la nube
             await window.updateDoc(window.doc(window.db, "apuestas", docId), { pagado: true });
         }
     }
 
     async function eliminarApuesta(docId) {
         if(confirm(`¿Estás seguro de eliminar esta apuesta por falta de pago?`)) {
-            // Elimina el documento de la nube
             await window.deleteDoc(window.doc(window.db, "apuestas", docId));
+        }
+    }
+
+    // --- FUNCIÓN DE REINICIO MAESTRO ---
+    async function reiniciarPolla() {
+        if(confirm("⚠️ ADVERTENCIA EXTREMA ⚠️\n\n¿Estás completamente seguro de que deseas ELIMINAR TODAS LAS APUESTAS y REINICIAR EL PARTIDO? Esta acción no se puede deshacer.")) {
+            
+            // Doble validación de seguridad
+            if(confirm("Se borrarán todos los registros de Firebase de forma permanente. Dale a Aceptar para confirmar.")) {
+                try {
+                    // 1. Borrar todas las apuestas (Operación por Lotes)
+                    const querySnapshot = await window.getDocs(window.collection(window.db, "apuestas"));
+                    const batch = window.writeBatch(window.db);
+                    
+                    querySnapshot.forEach((documento) => {
+                        batch.delete(documento.ref);
+                    });
+                    await batch.commit();
+
+                    // 2. Reiniciar el marcador y estado del partido
+                    const configRef = window.doc(window.db, "config", "estadoPartido");
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((module) => {
+                         module.setDoc(configRef, {
+                            finalizado: false,
+                            marcadorCol: null,
+                            marcadorPor: null
+                        });
+                    });
+
+                    // Limpiar casillas del administrador
+                    document.getElementById('final-col').value = '';
+                    document.getElementById('final-por').value = '';
+
+                    alert("✅ Se han eliminado todas las apuestas y se ha reiniciado el partido exitosamente.");
+                } catch(error) {
+                    console.error("Error al reiniciar datos:", error);
+                    alert("Hubo un problema al intentar reiniciar la base de datos.");
+                }
+            }
         }
     }
 
@@ -708,7 +765,6 @@
                 const apuesta = apuestas[i];
                 let estadoHTML = '';
 
-                // Lógica Visual del Administrador
                 if (rolActual === 'admin') {
                     if (apuesta.pagado) {
                         if (partidoFinalizado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) {
@@ -722,7 +778,6 @@
                         if (partidoFinalizado) {
                              estadoHTML = `<span class="badge" style="background-color: var(--red-col); color: white;">No Jugó (Sin Pago)</span>`;
                         } else {
-                            // Botones que disparan las funciones asíncronas pasándoles el ID de Firebase
                             estadoHTML = `
                                 <div class="admin-actions">
                                     <button class="btn-action btn-approve" onclick="validarPago('${apuesta.id}')">✅ Validar</button>
@@ -732,7 +787,6 @@
                         }
                     }
                 } else {
-                    // Lógica Visual del Apostador
                     if (apuesta.pagado) {
                         if (partidoFinalizado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) {
                             estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
@@ -750,7 +804,6 @@
                     }
                 }
 
-                // Efecto de campeón
                 const filaGanadoraStyle = (partidoFinalizado && apuesta.pagado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) 
                                           ? 'background-color: rgba(234, 179, 8, 0.15); border-left: 4px solid var(--yellow-col);' 
                                           : '';
