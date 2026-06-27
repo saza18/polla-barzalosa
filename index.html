@@ -4,6 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pollas FC Barzalosa - Colombia vs Portugal</title>
+    
+    <!-- FIREBASE SDKS (MOTOR DE BASE DE DATOS) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuración de tu proyecto
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfhLS-wCmtntFPJbifSgaGXxPG4sT0zyU",
+            authDomain: "polla-barzalosa.firebaseapp.com",
+            projectId: "polla-barzalosa",
+            storageBucket: "polla-barzalosa.firebasestorage.app",
+            messagingSenderId: "131650431143",
+            appId: "1:131650431143:web:0adf307fb0a130f50e9382"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Exponer las funciones a toda la página
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+
+        // Iniciar la escucha en tiempo real
+        iniciarSincronizacion();
+    </script>
+
     <style>
         :root {
             --bg-main: #0f172a;
@@ -41,7 +75,6 @@
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            /* Fondo de la bandera de Colombia con opacidad para diseño moderno */
             background: linear-gradient(to bottom, 
                 rgba(252, 209, 22, 0.95) 0%, rgba(252, 209, 22, 0.95) 50%, 
                 rgba(0, 56, 147, 0.95) 50%, rgba(0, 56, 147, 0.95) 75%, 
@@ -91,7 +124,7 @@
         .btn-admin { background: #475569; color: white; border: 1px solid #64748b; }
 
         .login-form {
-            display: none; /* Oculto por defecto, se muestra al elegir admin */
+            display: none; 
             margin-top: 20px;
             text-align: left;
         }
@@ -135,10 +168,41 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             overflow: hidden;
             border: 1px solid var(--border);
-            display: none; /* Se muestra después de elegir rol */
+            display: none; 
         }
 
-        /* Banner Principal */
+        /* Botón de Regresar (Salir) */
+        .top-bar {
+            background: var(--bg-card);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: flex-end;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .btn-logout {
+            background: var(--bg-input);
+            color: white;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .btn-logout:hover {
+            background: var(--border);
+        }
+
+        .admin-banner {
+            background: #eab308; color: #000; text-align: center; padding: 5px; font-weight: bold; font-size: 0.9rem; text-transform: uppercase;
+        }
+
+        /* Banner Principal con 100% Imagen */
         .header-banner {
             width: 100%;
             height: 350px; 
@@ -153,6 +217,23 @@
             object-fit: cover; 
             object-position: top center; 
             display: block;
+        }
+
+        /* Cronómetro */
+        .timer-banner {
+            background: var(--red-col);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #991b1b;
+        }
+        .timer-closed {
+            background: #475569 !important;
+            color: #94a3b8 !important;
         }
 
         /* Información del Partido */
@@ -176,18 +257,27 @@
             justify-content: center;
         }
 
-        .info-card .label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
+        .info-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
         .info-card .value { font-size: 1.1rem; font-weight: bold; color: var(--text-light); }
         .info-card .value.highlight { color: var(--yellow-col); }
         .info-card .value.nequi { color: #e11d48; }
 
-        /* Formulario de Entrada y Marcador */
+        /* Marcador Final del Partido */
+        .final-score-section {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 4px solid var(--accent);
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .final-score-section h2 { justify-content: center; font-size: 1.5rem; margin-bottom: 10px; }
+        .final-score-text { font-size: 2rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px; }
+
+        .score-admin-controls {
+            display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 0 auto; max-width: 400px;
+        }
+
+        /* Formulario de Entrada */
         .form-section {
             padding: 25px 20px;
             border-bottom: 1px solid var(--border);
@@ -227,6 +317,7 @@
             background: var(--green-por); color: white; border: none; padding: 11px 24px;
             border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px;
         }
+        .btn-submit:disabled { background: var(--border); cursor: not-allowed; opacity: 0.6; }
 
         /* Tabla de Resultados */
         .table-section { padding: 20px; overflow-x: auto; }
@@ -253,38 +344,6 @@
         }
         .btn-approve { background: var(--green-por); color: white; }
         .btn-reject { background: var(--red-col); color: white; }
-
-        .admin-banner {
-            background: #eab308; color: #000; text-align: center; padding: 5px; font-weight: bold; font-size: 0.9rem; text-transform: uppercase;
-        }
-
-        /* Botón de Regresar (Salir) */
-        .top-bar {
-            background: var(--bg-card);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: flex-end;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .btn-logout {
-            background: var(--bg-input);
-            color: white;
-            border: 1px solid var(--border);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-        
-        .btn-logout:hover {
-            background: var(--border);
-        }
-
     </style>
 </head>
 <body>
@@ -312,7 +371,7 @@
         <button class="btn-logout" onclick="volverAlMenuPrincipal()">🔙 Cambiar Perfil / Regresar</button>
     </div>
 
-    <!-- Banner de Admin (Solo visible para administrador) -->
+    <!-- Banner de Admin -->
     <div id="admin-top-banner" class="admin-banner" style="display: none;">
         MODO ADMINISTRADOR ACTIVO - PUEDES APROBAR O ELIMINAR APUESTAS
     </div>
@@ -322,30 +381,28 @@
         <img src="Pollas FC Barzalosa.png" alt="Banner Colombia vs Portugal" class="header-logo" onerror="this.onerror=null; this.parentNode.style.background='#1e3a8a'; this.style.display='none';">
     </div>
 
+    <!-- Cronómetro de Cierre -->
+    <div id="timer-banner" class="timer-banner">
+        ⏱️ Tiempo restante para apostar: <span id="time-display">Calculando...</span>
+    </div>
+
     <!-- Tarjetas de Información -->
     <div class="match-info-grid">
         <div class="info-card"><span class="label">Fecha</span><span class="value">27/06/2026</span></div>
-        <div class="info-card"><span class="label">Cierre</span><span class="value">6:30 PM</span></div>
+        <div class="info-card"><span class="label">Cierre</span><span class="value">6:25 PM</span></div>
         <div class="info-card"><span class="label">Valor</span><span class="value highlight">$10.000 COP</span></div>
         <div class="info-card"><span class="label">Nequi / Llave</span><span class="value nequi">3227277046</span></div>
     </div>
 
-    <!-- SECCIÓN NUEVA: Cronómetro de Cierre -->
-    <div id="countdown-banner" style="background: var(--red-col); text-align: center; padding: 12px; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px;">
-        ⏳ Cierre de apuestas en: <span id="timer-display" style="font-family: monospace; font-size: 1.3rem; margin-left: 10px;">Cargando...</span>
-    </div>
-
-    <!-- SECCIÓN NUEVA: Marcador Final del Partido -->
-    <div class="form-section" id="final-score-section" style="text-align: center; border-bottom: 4px solid var(--accent); background: rgba(15, 23, 42, 0.7);">
-        <h2 style="justify-content: center; font-size: 1.5rem; margin-bottom: 10px;">Marcador Final Oficial</h2>
+    <!-- Marcador Final del Partido -->
+    <div class="final-score-section" id="final-score-section">
+        <h2>Marcador Final Oficial</h2>
         
-        <!-- Texto de visualización para ambos perfiles -->
-        <div id="final-score-text" style="font-size: 2rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px;">
+        <div id="final-score-text" class="final-score-text">
             ⏳ Pendiente
         </div>
 
-        <!-- Controles exclusivos para Administrador -->
-        <div id="score-admin-controls" style="display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 0 auto; max-width: 400px;">
+        <div id="score-admin-controls" class="score-admin-controls">
             <p style="color: var(--red-col); font-weight: bold; margin-bottom: 10px;">Fijar resultado y cerrar polla:</p>
             <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 15px;">
                 <input type="number" id="final-col" min="0" placeholder="COL" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
@@ -356,7 +413,7 @@
         </div>
     </div>
 
-    <!-- Formulario de Registro (Visible para apostadores) -->
+    <!-- Formulario de Registro -->
     <div class="form-section" id="betting-form-section">
         <h2>Ingresar Pronóstico (Fila Actual: <span id="next-row-badge" style="color: var(--yellow-col);">1</span>)</h2>
         <form id="bet-form" onsubmit="registrarApuesta(event)">
@@ -393,91 +450,107 @@
                 </tr>
             </thead>
             <tbody id="table-body">
-                <!-- Generado por JavaScript -->
+                <!-- Se generan dinámicamente -->
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // --- ESTADO GLOBAL DE LA APLICACIÓN ---
+    // --- ESTADO Y VARIABLES GLOBALES ---
     let rolActual = null; 
     let apuestas = [];    
     const maxRows = 15;
     
-    // Variables de Estado del Partido
+    // Variables de Estado del Partido Global
     let partidoFinalizado = false;
     let marcadorFinalCol = null;
     let marcadorFinalPor = null;
-
-    // Variables del Cronómetro
-    const fechaCierre = new Date('June 27, 2026 18:25:00').getTime();
     let tiempoAgotado = false;
 
-    // --- LÓGICA DE CRONÓMETRO Y CIERRE ---
+    // --- LÓGICA DE CRONÓMETRO ---
     function iniciarCronometro() {
-        const timerInverval = setInterval(() => {
-            if (partidoFinalizado) {
-                clearInterval(timerInverval);
-                document.getElementById('countdown-banner').style.display = 'none';
-                return;
-            }
+        // Fecha de cierre: 27 de Junio 2026, 18:25:00
+        const fechaCierre = new Date("2026-06-27T18:25:00");
+        
+        setInterval(() => {
+            const ahora = new Date();
+            const diferencia = fechaCierre - ahora;
 
-            const ahora = new Date().getTime();
-            const distancia = fechaCierre - ahora;
-            const timerDisplay = document.getElementById('timer-display');
-            const countdownBanner = document.getElementById('countdown-banner');
+            const banner = document.getElementById('timer-banner');
+            const display = document.getElementById('time-display');
+            const btnSubmit = document.getElementById('submit-btn');
 
-            if (distancia < 0) {
-                clearInterval(timerInverval);
+            if (diferencia <= 0) {
                 tiempoAgotado = true;
-                if(timerDisplay) timerDisplay.textContent = "00:00:00";
-                if(countdownBanner) {
-                    countdownBanner.innerHTML = "🚫 SE CERRARON LAS APUESTAS";
-                    countdownBanner.style.background = "#000";
-                    countdownBanner.style.color = "var(--red-col)";
-                    countdownBanner.style.borderBottom = "2px solid var(--red-col)";
-                }
-                bloquearFormulario();
-                return;
-            }
-
-            const horas = Math.floor((distancia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutos = Math.floor((distancia % (1000 * 60 * 60)) / (1000 * 60));
-            const segundos = Math.floor((distancia % (1000 * 60)) / 1000);
-
-            if(timerDisplay) {
-                timerDisplay.textContent = 
-                    (horas < 10 ? "0" : "") + horas + ":" + 
-                    (minutos < 10 ? "0" : "") + minutos + ":" + 
-                    (segundos < 10 ? "0" : "") + segundos;
+                banner.classList.add('timer-closed');
+                display.textContent = "APUESTAS CERRADAS";
+                if(btnSubmit) btnSubmit.disabled = true;
+                document.getElementById('nombre').disabled = true;
+                document.getElementById('score-col').disabled = true;
+                document.getElementById('score-por').disabled = true;
+            } else {
+                const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+                const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+                const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+                
+                let text = "";
+                if(dias > 0) text += `${dias}d `;
+                if(horas > 0 || dias > 0) text += `${horas}h `;
+                text += `${minutos}m ${segundos}s`;
+                
+                display.textContent = text;
             }
         }, 1000);
     }
+    iniciarCronometro();
 
-    function bloquearFormulario() {
-        const btn = document.getElementById('submit-btn');
-        const nombre = document.getElementById('nombre');
-        const col = document.getElementById('score-col');
-        const por = document.getElementById('score-por');
+    // --- SINCRONIZACIÓN CON FIREBASE ---
+    function iniciarSincronizacion() {
+        if(!window.db) return;
 
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = "Apuestas Cerradas";
-        }
-        if (nombre) nombre.disabled = true;
-        if (col) col.disabled = true;
-        if (por) por.disabled = true;
-        
-        const badge = document.getElementById('next-row-badge');
-        if(badge && !partidoFinalizado && apuestas.length < maxRows) {
-            badge.textContent = "Cerrado";
-            badge.style.color = "var(--red-col)";
-        }
+        // 1. Escuchar la configuración global (Si el admin finalizó el partido)
+        window.onSnapshot(window.doc(window.db, "config", "estadoPartido"), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                partidoFinalizado = data.finalizado;
+                marcadorFinalCol = data.marcadorCol;
+                marcadorFinalPor = data.marcadorPor;
+            } else {
+                // Si el documento no existe aún en Firebase, lo asumimos como no finalizado
+                partidoFinalizado = false;
+            }
+            actualizarVistaMarcador();
+            renderizarTabla();
+            actualizarFormulario();
+        });
+
+        // 2. Escuchar todas las apuestas en tiempo real
+        window.onSnapshot(window.query(window.collection(window.db, "apuestas"), window.orderBy("timestamp", "asc")), (snapshot) => {
+            apuestas = []; 
+            snapshot.forEach((doc) => {
+                let data = doc.data();
+                data.id = doc.id; // Guarda el ID único que le da Firebase a cada fila
+                apuestas.push(data);
+            });
+            renderizarTabla();
+            actualizarFormulario();
+        });
     }
 
-    // Iniciar cronómetro al cargar el script
-    iniciarCronometro();
+    function actualizarFormulario() {
+        if (apuestas.length >= maxRows) {
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('next-row-badge').textContent = "Lleno";
+            document.getElementById('next-row-badge').style.color = "var(--red-col)";
+        } else {
+            // Solo habilitar si no se acabó el tiempo y si el partido no está finalizado
+            document.getElementById('submit-btn').disabled = tiempoAgotado || partidoFinalizado;
+            document.getElementById('next-row-badge').textContent = apuestas.length + 1;
+            document.getElementById('next-row-badge').style.color = "var(--yellow-col)";
+        }
+    }
 
     // --- LÓGICA DE INTERFAZ Y LOGIN ---
     function mostrarLoginAdmin() {
@@ -494,8 +567,6 @@
         if (rol === 'admin') {
             const user = document.getElementById('admin-user').value;
             const pass = document.getElementById('admin-pass').value;
-            
-            // Credenciales seguras (Quemadas en código para esta versión local)
             if (user !== 'admin' || pass !== 'admin123') {
                 alert("Credenciales incorrectas.");
                 return;
@@ -506,17 +577,13 @@
         document.getElementById('modal-role').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
 
-        // Adaptar la UI según el rol
         if (rolActual === 'admin') {
             document.getElementById('betting-form-section').style.display = 'none';
             document.getElementById('admin-top-banner').style.display = 'block';
             document.getElementById('th-estado').textContent = 'Acciones de Admin';
-            
-            // Mostrar panel de control de score solo si el partido no ha terminado
             document.getElementById('score-admin-controls').style.display = partidoFinalizado ? 'none' : 'block';
         } else {
-            // Mostrar formulario de apuestas solo si el partido no ha terminado
-            document.getElementById('betting-form-section').style.display = partidoFinalizado ? 'none' : 'block';
+            document.getElementById('betting-form-section').style.display = (partidoFinalizado || tiempoAgotado) ? 'none' : 'block';
             document.getElementById('admin-top-banner').style.display = 'none';
             document.getElementById('th-estado').textContent = 'Estado de Pago';
             document.getElementById('score-admin-controls').style.display = 'none';
@@ -528,46 +595,45 @@
 
     function volverAlMenuPrincipal() {
         rolActual = null;
-        
-        // Ocultar app principal y mostrar el fondo de la bandera
         document.getElementById('main-app').style.display = 'none';
         document.getElementById('modal-role').style.display = 'flex';
-        
-        // Restablecer el modal a los botones principales
         document.getElementById('admin-login-box').style.display = 'none';
         document.getElementById('role-selection-box').style.display = 'block';
-        
-        // Limpiar las credenciales ingresadas por seguridad
         document.getElementById('admin-user').value = '';
         document.getElementById('admin-pass').value = '';
     }
 
-    // --- LÓGICA DE MARCADOR FINAL ---
-    function finalizarPartido() {
+    // --- LÓGICA DE MARCADOR FINAL (Conecta a Firebase) ---
+    async function finalizarPartido() {
         const col = document.getElementById('final-col').value;
         const por = document.getElementById('final-por').value;
 
         if (col === '' || por === '') {
-            alert("Debes ingresar los goles de ambos equipos para finalizar.");
+            alert("Debes ingresar los goles de ambos equipos.");
             return;
         }
 
-        if (confirm("🚨 ¿Estás seguro de finalizar el partido con este marcador? Ya no se recibirán más apuestas y se calcularán los ganadores.")) {
-            partidoFinalizado = true;
-            marcadorFinalCol = parseInt(col);
-            marcadorFinalPor = parseInt(por);
-            
-            // Ocultar los controles de edición del admin ya que se finalizó
-            document.getElementById('score-admin-controls').style.display = 'none'; 
-            
-            actualizarVistaMarcador();
-            renderizarTabla(); // Vuelve a dibujar la tabla para mostrar los trofeos
+        if (confirm("🚨 ¿Estás seguro de finalizar el partido con este marcador? Nadie más podrá apostar y se calcularán los ganadores.")) {
+            // Se envía a Firestore la configuración global
+            // IMPORTANTE: Si es la primera vez que se presiona, crea el documento 'estadoPartido'
+            const configRef = window.doc(window.db, "config", "estadoPartido");
+            try {
+                // SetDoc con merge true actúa como un Update pero lo crea si no existe
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((module) => {
+                     module.setDoc(configRef, {
+                        finalizado: true,
+                        marcadorCol: parseInt(col),
+                        marcadorPor: parseInt(por)
+                    }, { merge: true });
+                });
+            } catch(e) {
+                console.error("Error al finalizar partido", e);
+            }
         }
     }
 
     function actualizarVistaMarcador() {
         const scoreText = document.getElementById('final-score-text');
-        
         if (partidoFinalizado) {
             scoreText.innerHTML = `🇨🇴 <span style="color: var(--yellow-col); font-size: 2.5rem; margin: 0 10px;">${marcadorFinalCol} - ${marcadorFinalPor}</span> 🇵🇹`;
             scoreText.style.color = "white";
@@ -577,78 +643,56 @@
         }
     }
 
-    // --- LÓGICA DE DATOS Y APUESTAS ---
-    function registrarApuesta(event) {
+    // --- REGISTRAR APUESTA (Conecta a Firebase) ---
+    async function registrarApuesta(event) {
         event.preventDefault();
 
-        if (tiempoAgotado) {
-            alert('Las apuestas ya se han cerrado. El partido está por comenzar.');
-            return;
-        }
-
-        if (apuestas.length >= maxRows) {
-            alert('Límite máximo de 15 apuestas alcanzado.');
-            return;
-        }
+        if (apuestas.length >= maxRows || tiempoAgotado || partidoFinalizado) return;
 
         const nombre = document.getElementById('nombre').value.trim();
         const golesCol = document.getElementById('score-col').value;
         const golesPor = document.getElementById('score-por').value;
-        
         const ahora = new Date();
         const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-        // Guardar datos en el array de memoria
-        apuestas.push({
-            nombre: nombre,
-            col: golesCol,
-            por: golesPor,
-            hora: horaFormateada,
-            pagado: false // Inicia sin pagar
-        });
-
-        // Limpiar formulario
-        document.getElementById('nombre').value = '';
-        document.getElementById('score-col').value = '';
-        document.getElementById('score-por').value = '';
-
-        // Actualizar UI
-        renderizarTabla();
-
-        // Bloquear si se llena
-        if (apuestas.length >= maxRows) {
+        try {
             document.getElementById('submit-btn').disabled = true;
-            document.getElementById('next-row-badge').textContent = "Lleno";
-            document.getElementById('next-row-badge').style.color = "var(--red-col)";
-        } else {
-            document.getElementById('next-row-badge').textContent = apuestas.length + 1;
-        }
 
-        // --- REDIRECCIÓN WHATSAPP ---
-        const numeroAdmin = "573177198490"; 
-        const mensajeTexto = `Hola, acabo de registrar mi pronóstico en la polla a nombre de ${nombre}. Mi marcador fue Colombia ${golesCol} - ${golesPor} Portugal. Aquí te envío el comprobante de pago de los $10.000.`;
-        window.open(`https://wa.me/${numeroAdmin}?text=${encodeURIComponent(mensajeTexto)}`, '_blank');
+            // Envía la fila a Firestore
+            await window.addDoc(window.collection(window.db, "apuestas"), {
+                nombre: nombre,
+                col: parseInt(golesCol),
+                por: parseInt(golesPor),
+                hora: horaFormateada,
+                pagado: false,
+                timestamp: ahora.getTime() // Se guarda como número para que Firebase ordene bien las filas
+            });
+
+            document.getElementById('nombre').value = '';
+            document.getElementById('score-col').value = '';
+            document.getElementById('score-por').value = '';
+
+            const msg = `Hola, acabo de registrar mi pronóstico en la polla a nombre de ${nombre}. Mi marcador fue Colombia ${golesCol} - ${golesPor} Portugal. Aquí te envío el comprobante de pago de los $10.000.`;
+            window.open(`https://wa.me/573177198490?text=${encodeURIComponent(msg)}`, '_blank');
+        } catch (error) {
+            console.error("Error al registrar en BD:", error);
+            alert("Hubo un error de conexión, intenta de nuevo.");
+            document.getElementById('submit-btn').disabled = false;
+        }
     }
 
-    // --- FUNCIONES DE ADMINISTRADOR ---
-    function validarPago(index) {
-        if(confirm(`¿Confirmas que recibiste el pago de ${apuestas[index].nombre}?`)) {
-            apuestas[index].pagado = true;
-            renderizarTabla();
+    // --- FUNCIONES DE ADMINISTRADOR (Conecta a Firebase) ---
+    async function validarPago(docId) {
+        if(confirm(`¿Confirmas que recibiste el pago de esta apuesta?`)) {
+            // Actualiza solo la propiedad 'pagado' del documento específico en la nube
+            await window.updateDoc(window.doc(window.db, "apuestas", docId), { pagado: true });
         }
     }
 
-    function eliminarApuesta(index) {
-        if(confirm(`¿Estás seguro de eliminar la apuesta de ${apuestas[index].nombre} por falta de pago?`)) {
-            apuestas.splice(index, 1); // Borra el elemento del array
-            
-            // Habilitar formulario si se liberó espacio y el partido no ha terminado ni se ha agotado el tiempo
-            if (apuestas.length < maxRows && rolActual === 'apostador' && !partidoFinalizado && !tiempoAgotado) {
-                document.getElementById('submit-btn').disabled = false;
-                document.getElementById('next-row-badge').textContent = apuestas.length + 1;
-                document.getElementById('next-row-badge').style.color = "var(--yellow-col)";
-            }
-            renderizarTabla();
+    async function eliminarApuesta(docId) {
+        if(confirm(`¿Estás seguro de eliminar esta apuesta por falta de pago?`)) {
+            // Elimina el documento de la nube
+            await window.deleteDoc(window.doc(window.db, "apuestas", docId));
         }
     }
 
@@ -661,14 +705,13 @@
             const tr = document.createElement('tr');
             
             if (i < apuestas.length) {
-                // Fila con datos reales
                 const apuesta = apuestas[i];
                 let estadoHTML = '';
 
-                // Lógica de Renderizado del Estado
+                // Lógica Visual del Administrador
                 if (rolActual === 'admin') {
                     if (apuesta.pagado) {
-                        if (partidoFinalizado && apuesta.col == marcadorFinalCol && apuesta.por == marcadorFinalPor) {
+                        if (partidoFinalizado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) {
                             estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
                         } else if (partidoFinalizado) {
                             estadoHTML = `<span class="badge" style="background-color: var(--border); color: white;">Perdió</span>`;
@@ -676,22 +719,22 @@
                             estadoHTML = `<span class="badge badge-approved">Pago Aprobado ✅</span>`;
                         }
                     } else {
-                        // Si no ha pagado, pero el partido ya acabó, pierde la oportunidad de ser validado
                         if (partidoFinalizado) {
                              estadoHTML = `<span class="badge" style="background-color: var(--red-col); color: white;">No Jugó (Sin Pago)</span>`;
                         } else {
+                            // Botones que disparan las funciones asíncronas pasándoles el ID de Firebase
                             estadoHTML = `
                                 <div class="admin-actions">
-                                    <button class="btn-action btn-approve" onclick="validarPago(${i})">✅ Validar</button>
-                                    <button class="btn-action btn-reject" onclick="eliminarApuesta(${i})">❌ Borrar</button>
+                                    <button class="btn-action btn-approve" onclick="validarPago('${apuesta.id}')">✅ Validar</button>
+                                    <button class="btn-action btn-reject" onclick="eliminarApuesta('${apuesta.id}')">❌ Borrar</button>
                                 </div>
                             `;
                         }
                     }
                 } else {
-                    // Vista de apostador normal
+                    // Lógica Visual del Apostador
                     if (apuesta.pagado) {
-                        if (partidoFinalizado && apuesta.col == marcadorFinalCol && apuesta.por == marcadorFinalPor) {
+                        if (partidoFinalizado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) {
                             estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
                         } else if (partidoFinalizado) {
                             estadoHTML = `<span class="badge" style="background-color: var(--border); color: white;">Perdió</span>`;
@@ -707,8 +750,8 @@
                     }
                 }
 
-                // Si es ganador, resaltamos toda la fila con un borde dorado sutil
-                const filaGanadoraStyle = (partidoFinalizado && apuesta.pagado && apuesta.col == marcadorFinalCol && apuesta.por == marcadorFinalPor) 
+                // Efecto de campeón
+                const filaGanadoraStyle = (partidoFinalizado && apuesta.pagado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) 
                                           ? 'background-color: rgba(234, 179, 8, 0.15); border-left: 4px solid var(--yellow-col);' 
                                           : '';
 
@@ -722,7 +765,6 @@
                     <td style="text-align: center; ${filaGanadoraStyle}">${estadoHTML}</td>
                 `;
             } else {
-                // Fila vacía de relleno
                 tr.innerHTML = `
                     <td class="col-index">${i + 1}</td>
                     <td style="color: var(--text-muted); font-style: italic;">Vacío</td>
