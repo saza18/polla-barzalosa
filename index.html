@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pollas FC Barzalosa - Colombia vs Portugal</title>
+    <title id="page-title">Pollas FC Barzalosa</title>
     
-    <!-- FIREBASE SDKS (MOTOR DE BASE DE DATOS) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // SE AGREGAN LAS FUNCIONES 'getDocs' Y 'writeBatch' NECESARIAS PARA EL BORRADO MASIVO
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, getDocs, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuración de tu proyecto
         const firebaseConfig = {
             apiKey: "AIzaSyAfhLS-wCmtntFPJbifSgaGXxPG4sT0zyU",
             authDomain: "polla-barzalosa.firebaseapp.com",
@@ -24,7 +21,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // Exponer las funciones a toda la página
         window.db = db;
         window.collection = collection;
         window.addDoc = addDoc;
@@ -34,10 +30,10 @@
         window.doc = doc;
         window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
-        window.getDocs = getDocs;       // Novedad: para buscar qué borrar
-        window.writeBatch = writeBatch; // Novedad: para borrar todo junto
+        window.getDocs = getDocs;       
+        window.writeBatch = writeBatch; 
+        window.setDoc = setDoc;
 
-        // Iniciar la escucha en tiempo real
         iniciarSincronizacion();
     </script>
 
@@ -108,16 +104,8 @@
         }
 
         .role-btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.1s, filter 0.2s;
+            display: block; width: 100%; padding: 15px; margin-bottom: 15px;
+            border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.1s, filter 0.2s;
         }
 
         .role-btn:hover { filter: brightness(1.2); }
@@ -126,41 +114,10 @@
         .btn-apostador { background: var(--accent); color: white; }
         .btn-admin { background: #475569; color: white; border: 1px solid #64748b; }
 
-        .login-form {
-            display: none; 
-            margin-top: 20px;
-            text-align: left;
-        }
-
-        .login-form input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: white;
-            border-radius: 6px;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: var(--green-por);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .btn-back {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            margin-top: 15px;
-            cursor: pointer;
-            text-decoration: underline;
-        }
+        .login-form { display: none; margin-top: 20px; text-align: left; }
+        .login-form input { width: 100%; padding: 12px; margin-bottom: 15px; background: var(--bg-input); border: 1px solid var(--border); color: white; border-radius: 6px; }
+        .btn-login { width: 100%; padding: 12px; background: var(--green-por); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-back { background: none; border: none; color: var(--text-muted); margin-top: 15px; cursor: pointer; text-decoration: underline; }
 
         /* --- CONTENEDOR PRINCIPAL --- */
         .container {
@@ -174,204 +131,92 @@
             display: none; 
         }
 
-        /* Botón de Regresar (Salir) y Botón de Reinicio */
         .top-bar {
-            background: var(--bg-card);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between; /* Modificado para separar botones */
-            align-items: center;
-            border-bottom: 1px solid var(--border);
+            background: var(--bg-card); padding: 10px 20px; display: flex;
+            justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px;
         }
         
-        .btn-logout {
-            background: var(--bg-input);
-            color: white;
-            border: 1px solid var(--border);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
+        .btn-logout { background: var(--bg-input); color: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: background 0.2s; }
+        .btn-logout:hover { background: var(--border); }
         
-        .btn-logout:hover {
-            background: var(--border);
-        }
-        
-        /* Nuevo Botón de Reinicio */
-        .btn-reset-data {
-            background: #7f1d1d;
-            color: white;
-            border: 1px solid #b91c1c;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: none; /* Se oculta por defecto, se muestra solo en modo admin */
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-        
-        .btn-reset-data:hover {
-            background: #991b1b;
-        }
+        .btn-reset-data { background: #7f1d1d; color: white; border: 1px solid #b91c1c; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: none; align-items: center; gap: 8px; }
+        .btn-reset-data:hover { background: #991b1b; }
 
-        .admin-banner {
-            background: #eab308; color: #000; text-align: center; padding: 5px; font-weight: bold; font-size: 0.9rem; text-transform: uppercase;
-        }
+        .btn-toggle-config { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: none; align-items: center; gap: 8px; }
 
-        /* Banner Principal con 100% Imagen */
-        .header-banner {
-            width: 100%;
-            height: 350px; 
-            overflow: hidden;
-            border-bottom: 4px solid var(--yellow-col);
-            background-color: #000; 
-        }
+        .admin-banner { background: #eab308; color: #000; text-align: center; padding: 5px; font-weight: bold; font-size: 0.9rem; text-transform: uppercase; }
 
-        .header-logo {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; 
-            object-position: top center; 
-            display: block;
-        }
+        .header-banner { width: 100%; height: 350px; overflow: hidden; border-bottom: 4px solid var(--yellow-col); background-color: #000; }
+        .header-logo { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
 
-        /* Cronómetro */
-        .timer-banner {
-            background: var(--red-col);
-            color: white;
-            text-align: center;
-            padding: 12px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 2px solid #991b1b;
-        }
-        .timer-closed {
-            background: #475569 !important;
-            color: #94a3b8 !important;
-        }
+        .timer-banner { background: var(--red-col); color: white; text-align: center; padding: 12px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #991b1b; }
+        .timer-closed { background: #475569 !important; color: #94a3b8 !important; }
 
-        /* Información del Partido */
-        .match-info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            padding: 20px;
-            background: rgba(15, 23, 42, 0.4);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .info-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
+        .match-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; padding: 20px; background: rgba(15, 23, 42, 0.4); border-bottom: 1px solid var(--border); }
+        .info-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
         .info-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
         .info-card .value { font-size: 1.1rem; font-weight: bold; color: var(--text-light); }
         .info-card .value.highlight { color: var(--yellow-col); }
         .info-card .value.nequi { color: #e11d48; }
 
-        /* Marcador Final del Partido */
-        .final-score-section {
-            padding: 25px 20px;
-            text-align: center;
-            border-bottom: 4px solid var(--accent);
-            background: rgba(15, 23, 42, 0.7);
-        }
+        /* --- CONFIG PANEL --- */
+        .config-section { display: none; padding: 25px 20px; background: rgba(59, 130, 246, 0.1); border-bottom: 1px solid var(--accent); }
+        .config-section h2 { font-size: 1.25rem; color: var(--accent); margin-bottom: 15px; }
 
-        .final-score-section h2 { justify-content: center; font-size: 1.5rem; margin-bottom: 10px; }
-        .final-score-text { font-size: 2rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px; }
+        /* --- MARCADOR --- */
+        .final-score-section { padding: 25px 20px; text-align: center; border-bottom: 4px solid var(--accent); background: rgba(15, 23, 42, 0.7); }
+        .final-score-section h2 { justify-content: center; font-size: 1.5rem; margin-bottom: 15px; color: white;}
+        .final-score-text { font-size: 2rem; font-weight: bold; color: var(--text-light); margin-bottom: 15px; }
+        .pending-score-box { background: rgba(59, 130, 246, 0.1); border: 1px dashed var(--accent); padding: 15px 25px; border-radius: 8px; font-size: 1.1rem; color: var(--text-muted); display: inline-block; margin: 0 auto; }
+        .score-admin-controls { display: none; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; margin: 0 auto; max-width: 450px; border: 1px solid var(--yellow-col); }
 
-        .score-admin-controls {
-            display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 0 auto; max-width: 400px;
-        }
-
-        /* Formulario de Entrada */
-        .form-section {
-            padding: 25px 20px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(30, 41, 59, 0.5);
-        }
-
-        .form-section h2 {
-            font-size: 1.25rem;
-            margin-bottom: 15px;
-            color: var(--text-light);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: flex-end;
-        }
+        /* --- FORMULARIOS --- */
+        .form-section { padding: 25px 20px; border-bottom: 1px solid var(--border); background: rgba(30, 41, 59, 0.5); }
+        .form-section h2 { font-size: 1.25rem; margin-bottom: 15px; color: var(--text-light); display: flex; align-items: center; gap: 10px; }
+        
+        .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: flex-end; }
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
 
         @media (max-width: 768px) {
             .form-grid { grid-template-columns: 1fr; }
+            .config-grid { grid-template-columns: 1fr; }
             .header-banner { height: 200px; }
         }
 
-        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; width: 100%; }
         .input-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        
         .input-group input {
-            background: var(--bg-input); border: 1px solid var(--border);
-            color: white; padding: 10px 12px; border-radius: 6px; outline: none;
+            background: var(--bg-input); border: 1px solid var(--border); color: white; padding: 10px 12px; border-radius: 6px; outline: none; width: 100%; min-width: 0;
         }
         .input-group input:focus { border-color: var(--accent); }
 
-        .btn-submit {
-            background: var(--green-por); color: white; border: none; padding: 11px 24px;
-            border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px;
-        }
+        .multi-input-row { display: grid; gap: 10px; width: 100%; }
+        .cols-3 { grid-template-columns: 2fr 1fr 1fr; }
+        .cols-2 { grid-template-columns: 1fr 1fr; }
+
+        .btn-submit { background: var(--green-por); color: white; border: none; padding: 11px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px; width: 100%; }
         .btn-submit:disabled { background: var(--border); cursor: not-allowed; opacity: 0.6; }
 
-        /* Tabla de Resultados */
+        /* --- TABLA --- */
         .table-section { padding: 20px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
-        th {
-            background-color: #0f172a; color: var(--text-muted); padding: 12px;
-            font-weight: 600; text-transform: uppercase; font-size: 0.8rem; border-bottom: 2px solid var(--border);
-        }
+        th { background-color: #0f172a; color: var(--text-muted); padding: 12px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; border-bottom: 2px solid var(--border); }
         td { padding: 12px; border-bottom: 1px solid rgba(71, 85, 105, 0.4); color: var(--text-light); }
         tr:nth-child(even) { background-color: rgba(15, 23, 42, 0.2); }
-
-        .col-index { font-weight: bold; color: var(--text-muted); width: 50px; }
         
-        .badge {
-            padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: inline-block;
-        }
+        .col-index { font-weight: bold; color: var(--text-muted); width: 50px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: inline-block; }
         .badge-pending { background-color: #854d0e; color: #fef08a; }
         .badge-approved { background-color: #14532d; color: #86efac; }
-
-        /* Botones de Administrador */
         .admin-actions { display: flex; gap: 5px; justify-content: center; }
-        .btn-action {
-            border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
-        }
+        .btn-action { border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
         .btn-approve { background: var(--green-por); color: white; }
         .btn-reject { background: var(--red-col); color: white; }
     </style>
 </head>
 <body>
 
-<!-- MODAL DE SELECCIÓN DE ROL -->
 <div id="modal-role" class="modal-overlay">
     <div class="modal-box" id="role-selection-box">
         <h2>Selecciona tu perfil</h2>
@@ -389,93 +234,122 @@
 </div>
 
 <div class="container" id="main-app">
-    <!-- Barra superior con botón de regresar y botón de reinicio -->
     <div class="top-bar">
-        <button id="btn-reset-all" class="btn-reset-data" onclick="reiniciarPolla()">⚠️ Reiniciar Todo</button>
-        <button class="btn-logout" onclick="volverAlMenuPrincipal()">🔙 Cambiar Perfil / Regresar</button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btn-reset-all" class="btn-reset-data" onclick="reiniciarPolla()">⚠️ Reiniciar Todo</button>
+            <button id="btn-toggle-config" class="btn-toggle-config" onclick="toggleConfig()">⚙️ Configurar Partido</button>
+        </div>
+        <button class="btn-logout" onclick="volverAlMenuPrincipal()">🔙 Salir</button>
     </div>
 
-    <!-- Banner de Admin -->
     <div id="admin-top-banner" class="admin-banner" style="display: none;">
-        MODO ADMINISTRADOR ACTIVO - PUEDES APROBAR O ELIMINAR APUESTAS
+        MODO ADMINISTRADOR ACTIVO
     </div>
 
-    <!-- Banner Principal -->
+    <div class="config-section" id="config-section">
+        <h2>⚙️ Configuración del Evento</h2>
+        <form onsubmit="guardarConfiguracion(event)">
+            <div class="config-grid">
+                <div class="input-group">
+                    <label>Equipo Local (Nombre, Abrev, Emoji)</label>
+                    <div class="multi-input-row cols-3">
+                        <input type="text" id="cfg-eq1-nombre" placeholder="Ej: Sudáfrica" required>
+                        <input type="text" id="cfg-eq1-abrev" placeholder="Ej: SUD" maxlength="3" required>
+                        <input type="text" id="cfg-eq1-emoji" placeholder="🇿🇦" required style="text-align: center;">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Equipo Visitante (Nombre, Abrev, Emoji)</label>
+                    <div class="multi-input-row cols-3">
+                        <input type="text" id="cfg-eq2-nombre" placeholder="Ej: Canadá" required>
+                        <input type="text" id="cfg-eq2-abrev" placeholder="Ej: CAN" maxlength="3" required>
+                        <input type="text" id="cfg-eq2-emoji" placeholder="🇨🇦" required style="text-align: center;">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Fecha y Hora de Cierre (Cronómetro)</label>
+                    <input type="datetime-local" id="cfg-fecha" required>
+                </div>
+                <div class="input-group">
+                    <label>Valor de la Apuesta y Nequi</label>
+                    <div class="multi-input-row cols-2">
+                        <input type="text" id="cfg-valor" placeholder="$10.000 COP" required>
+                        <input type="text" id="cfg-nequi" placeholder="3227277046" required>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit" style="margin-top: 20px; background: var(--accent);">💾 Guardar Configuración y Publicar</button>
+        </form>
+    </div>
+
     <div class="header-banner">
-        <img src="Pollas FC Barzalosa.png" alt="Banner Colombia vs Portugal" class="header-logo" onerror="this.onerror=null; this.parentNode.style.background='#1e3a8a'; this.style.display='none';">
+        <img src="Pollas FC Barzalosa.png" alt="Banner Evento" class="header-logo" onerror="this.onerror=null; this.parentNode.style.background='#1e3a8a'; this.style.display='none';">
     </div>
 
-    <!-- Cronómetro de Cierre -->
     <div id="timer-banner" class="timer-banner">
         ⏱️ Tiempo restante para apostar: <span id="time-display">Calculando...</span>
     </div>
 
-    <!-- Tarjetas de Información -->
     <div class="match-info-grid">
-        <div class="info-card"><span class="label">Fecha</span><span class="value">27/06/2026</span></div>
-        <div class="info-card"><span class="label">Cierre</span><span class="value">6:25 PM</span></div>
-        <div class="info-card"><span class="label">Valor</span><span class="value highlight">$10.000 COP</span></div>
-        <div class="info-card"><span class="label">Nequi / Llave</span><span class="value nequi">3227277046</span></div>
+        <div class="info-card"><span class="label">Fecha Partido</span><span class="value" id="ui-fecha">Cargando...</span></div>
+        <div class="info-card"><span class="label">Hora de Cierre</span><span class="value" id="ui-hora">Cargando...</span></div>
+        <div class="info-card"><span class="label">Valor Polla</span><span class="value highlight" id="ui-valor">Cargando...</span></div>
+        <div class="info-card"><span class="label">Nequi / Llave</span><span class="value nequi" id="ui-nequi">Cargando...</span></div>
     </div>
 
-    <!-- Marcador Final del Partido -->
     <div class="final-score-section" id="final-score-section">
         <h2>Marcador Final Oficial</h2>
         
-        <div id="final-score-text" class="final-score-text">
-            ⏳ Pendiente
-        </div>
+        <div id="final-score-text" class="final-score-text"></div>
 
         <div id="score-admin-controls" class="score-admin-controls">
-            <p style="color: var(--red-col); font-weight: bold; margin-bottom: 10px;">Fijar resultado y cerrar polla:</p>
+            <p style="color: var(--yellow-col); font-weight: bold; margin-bottom: 5px;">⚽ Ingresar Marcador Oficial</p>
+            <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 15px;">Una vez el partido finalice, ingresa el resultado aquí para calcular los ganadores.</p>
             <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 15px;">
-                <input type="number" id="final-col" min="0" placeholder="COL" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
+                <input type="number" id="final-eq1" min="0" placeholder="EQ1" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
                 <span style="font-size: 1.5rem; font-weight: bold;">-</span>
-                <input type="number" id="final-por" min="0" placeholder="POR" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
+                <input type="number" id="final-eq2" min="0" placeholder="EQ2" style="width: 70px; text-align: center; padding: 10px; border-radius: 6px; background: var(--bg-input); color: white; border: 1px solid var(--border);">
             </div>
-            <button class="btn-submit" onclick="finalizarPartido()" style="background: var(--red-col); width: 100%;">Finalizar Partido</button>
+            <button class="btn-submit" onclick="finalizarPartido()" style="background: var(--red-col); width: 100%;">Fijar Resultado y Cerrar Polla</button>
         </div>
     </div>
 
-    <!-- Formulario de Registro -->
     <div class="form-section" id="betting-form-section">
         <h2>Ingresar Pronóstico (Fila Actual: <span id="next-row-badge" style="color: var(--yellow-col);">1</span>)</h2>
         <form id="bet-form" onsubmit="registrarApuesta(event)">
             <div class="form-grid">
                 <div class="input-group">
-                    <label for="nombre">Nombre del Participante</label>
+                    <label for="nombre">Nombre Participante</label>
                     <input type="text" id="nombre" required>
                 </div>
                 <div class="input-group">
-                    <label for="score-col">Goles COL 🇨🇴</label>
-                    <input type="number" id="score-col" min="0" required>
+                    <label for="score-eq1" id="lbl-eq1">Goles EQ1</label>
+                    <input type="number" id="score-eq1" min="0" required>
                 </div>
                 <div class="input-group">
-                    <label for="score-por">Goles POR 🇵🇹</label>
-                    <input type="number" id="score-por" min="0" required>
+                    <label for="score-eq2" id="lbl-eq2">Goles EQ2</label>
+                    <input type="number" id="score-eq2" min="0" required>
                 </div>
-                <button type="submit" id="submit-btn" class="btn-submit">Registrar</button>
+                <button type="submit" id="submit-btn" class="btn-submit" style="height: auto; align-self: flex-end;">Registrar</button>
             </div>
         </form>
     </div>
 
-    <!-- Tabla de Clasificación -->
     <div class="table-section">
         <table>
             <thead>
                 <tr>
                     <th class="col-index">#</th>
                     <th>Participante</th>
-                    <th style="text-align: center;">COL 🇨🇴</th>
-                    <th style="text-align: center;">POR 🇵🇹</th>
+                    <th style="text-align: center;" id="th-eq1">EQ1</th>
+                    <th style="text-align: center;" id="th-eq2">EQ2</th>
                     <th style="text-align: center;">Marcador</th>
                     <th style="text-align: center;">Registro</th>
                     <th style="text-align: center;" id="th-estado">Estado de Pago</th>
                 </tr>
             </thead>
             <tbody id="table-body">
-                <!-- Se generan dinámicamente -->
-            </tbody>
+                </tbody>
         </table>
     </div>
 </div>
@@ -483,21 +357,26 @@
 <script>
     // --- ESTADO Y VARIABLES GLOBALES ---
     let rolActual = null; 
-    let apuestas = [];    
+    let apuestas = [];   
     const maxRows = 15;
     
-    // Variables de Estado del Partido Global
-    let partidoFinalizado = false;
-    let marcadorFinalCol = null;
-    let marcadorFinalPor = null;
+    let configEvento = {
+        eq1Nombre: 'Sudáfrica', eq1Abrev: 'SUD', eq1Emoji: '🇿🇦',
+        eq2Nombre: 'Canadá', eq2Abrev: 'CAN', eq2Emoji: '🇨🇦',
+        fechaCierreStr: '2026-06-27T18:25',
+        valor: '$10.000 COP', nequi: '3227277046',
+        finalizado: false, marcadorEq1: null, marcadorEq2: null
+    };
+
     let tiempoAgotado = false;
+    let cronometroInterval = null;
 
     // --- LÓGICA DE CRONÓMETRO ---
     function iniciarCronometro() {
-        // Fecha de cierre: 27 de Junio 2026, 18:25:00
-        const fechaCierre = new Date("2026-06-27T18:25:00");
+        if(cronometroInterval) clearInterval(cronometroInterval);
         
-        setInterval(() => {
+        cronometroInterval = setInterval(() => {
+            const fechaCierre = new Date(configEvento.fechaCierreStr);
             const ahora = new Date();
             const diferencia = fechaCierre - ahora;
 
@@ -511,9 +390,15 @@
                 display.textContent = "APUESTAS CERRADAS";
                 if(btnSubmit) btnSubmit.disabled = true;
                 document.getElementById('nombre').disabled = true;
-                document.getElementById('score-col').disabled = true;
-                document.getElementById('score-por').disabled = true;
+                document.getElementById('score-eq1').disabled = true;
+                document.getElementById('score-eq2').disabled = true;
             } else {
+                tiempoAgotado = false;
+                banner.classList.remove('timer-closed');
+                document.getElementById('nombre').disabled = false;
+                document.getElementById('score-eq1').disabled = false;
+                document.getElementById('score-eq2').disabled = false;
+
                 const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
                 const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
@@ -526,30 +411,56 @@
                 
                 display.textContent = text;
             }
+            actualizarFormulario();
         }, 1000);
     }
-    iniciarCronometro();
+
+    // --- ACTUALIZAR INTERFAZ DINÁMICA ---
+    function actualizarTextosUI() {
+        document.getElementById('page-title').textContent = `Polla: ${configEvento.eq1Nombre} vs ${configEvento.eq2Nombre}`;
+        
+        document.getElementById('lbl-eq1').textContent = `Goles ${configEvento.eq1Abrev} ${configEvento.eq1Emoji}`;
+        document.getElementById('lbl-eq2').textContent = `Goles ${configEvento.eq2Abrev} ${configEvento.eq2Emoji}`;
+        document.getElementById('th-eq1').textContent = `${configEvento.eq1Abrev} ${configEvento.eq1Emoji}`;
+        document.getElementById('th-eq2').textContent = `${configEvento.eq2Abrev} ${configEvento.eq2Emoji}`;
+        document.getElementById('final-eq1').placeholder = configEvento.eq1Abrev;
+        document.getElementById('final-eq2').placeholder = configEvento.eq2Abrev;
+
+        if(configEvento.fechaCierreStr) {
+            const f = new Date(configEvento.fechaCierreStr);
+            document.getElementById('ui-fecha').textContent = f.toLocaleDateString('es-CO');
+            document.getElementById('ui-hora').textContent = f.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit', hour12:true});
+        }
+        document.getElementById('ui-valor').textContent = configEvento.valor;
+        document.getElementById('ui-nequi').textContent = configEvento.nequi;
+
+        if (rolActual === 'admin') {
+            document.getElementById('cfg-eq1-nombre').value = configEvento.eq1Nombre;
+            document.getElementById('cfg-eq1-abrev').value = configEvento.eq1Abrev;
+            document.getElementById('cfg-eq1-emoji').value = configEvento.eq1Emoji;
+            document.getElementById('cfg-eq2-nombre').value = configEvento.eq2Nombre;
+            document.getElementById('cfg-eq2-abrev').value = configEvento.eq2Abrev;
+            document.getElementById('cfg-eq2-emoji').value = configEvento.eq2Emoji;
+            document.getElementById('cfg-fecha').value = configEvento.fechaCierreStr;
+            document.getElementById('cfg-valor').value = configEvento.valor;
+            document.getElementById('cfg-nequi').value = configEvento.nequi;
+        }
+    }
 
     // --- SINCRONIZACIÓN CON FIREBASE ---
     function iniciarSincronizacion() {
         if(!window.db) return;
 
-        // 1. Escuchar la configuración global (Si el admin finalizó el partido)
         window.onSnapshot(window.doc(window.db, "config", "estadoPartido"), (docSnap) => {
             if (docSnap.exists()) {
-                const data = docSnap.data();
-                partidoFinalizado = data.finalizado;
-                marcadorFinalCol = data.marcadorCol;
-                marcadorFinalPor = data.marcadorPor;
-            } else {
-                partidoFinalizado = false;
+                configEvento = { ...configEvento, ...docSnap.data() };
             }
+            actualizarTextosUI();
+            iniciarCronometro();
             actualizarVistaMarcador();
             renderizarTabla();
-            actualizarFormulario();
         });
 
-        // 2. Escuchar todas las apuestas en tiempo real
         window.onSnapshot(window.query(window.collection(window.db, "apuestas"), window.orderBy("timestamp", "asc")), (snapshot) => {
             apuestas = []; 
             snapshot.forEach((doc) => {
@@ -564,17 +475,17 @@
 
     function actualizarFormulario() {
         if (apuestas.length >= maxRows) {
-            document.getElementById('submit-btn').disabled = true;
+            if(document.getElementById('submit-btn')) document.getElementById('submit-btn').disabled = true;
             document.getElementById('next-row-badge').textContent = "Lleno";
             document.getElementById('next-row-badge').style.color = "var(--red-col)";
         } else {
-            document.getElementById('submit-btn').disabled = tiempoAgotado || partidoFinalizado;
+            if(document.getElementById('submit-btn')) document.getElementById('submit-btn').disabled = tiempoAgotado || configEvento.finalizado;
             document.getElementById('next-row-badge').textContent = apuestas.length + 1;
             document.getElementById('next-row-badge').style.color = "var(--yellow-col)";
         }
     }
 
-    // --- LÓGICA DE INTERFAZ Y LOGIN ---
+    // --- FUNCIONES DE INTERFAZ Y ROLES ---
     function mostrarLoginAdmin() {
         document.getElementById('role-selection-box').style.display = 'none';
         document.getElementById('admin-login-box').style.display = 'block';
@@ -602,17 +513,19 @@
         if (rolActual === 'admin') {
             document.getElementById('betting-form-section').style.display = 'none';
             document.getElementById('admin-top-banner').style.display = 'block';
-            document.getElementById('btn-reset-all').style.display = 'flex'; // Mostrar botón de reinicio
+            document.getElementById('btn-reset-all').style.display = 'flex';
+            document.getElementById('btn-toggle-config').style.display = 'flex';
             document.getElementById('th-estado').textContent = 'Acciones de Admin';
-            document.getElementById('score-admin-controls').style.display = partidoFinalizado ? 'none' : 'block';
         } else {
-            document.getElementById('betting-form-section').style.display = (partidoFinalizado || tiempoAgotado) ? 'none' : 'block';
+            document.getElementById('betting-form-section').style.display = (configEvento.finalizado || tiempoAgotado) ? 'none' : 'block';
             document.getElementById('admin-top-banner').style.display = 'none';
-            document.getElementById('btn-reset-all').style.display = 'none'; // Ocultar botón de reinicio
+            document.getElementById('btn-reset-all').style.display = 'none';
+            document.getElementById('btn-toggle-config').style.display = 'none';
+            document.getElementById('config-section').style.display = 'none';
             document.getElementById('th-estado').textContent = 'Estado de Pago';
-            document.getElementById('score-admin-controls').style.display = 'none';
         }
 
+        actualizarTextosUI();
         actualizarVistaMarcador();
         renderizarTabla();
     }
@@ -627,12 +540,71 @@
         document.getElementById('admin-pass').value = '';
     }
 
-    // --- LÓGICA DE MARCADOR FINAL ---
-    async function finalizarPartido() {
-        const col = document.getElementById('final-col').value;
-        const por = document.getElementById('final-por').value;
+    document.addEventListener("DOMContentLoaded", () => {
+        volverAlMenuPrincipal();
+    });
 
-        if (col === '' || por === '') {
+    function toggleConfig() {
+        const confSection = document.getElementById('config-section');
+        confSection.style.display = confSection.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // --- GUARDAR CONFIGURACIÓN DE PARTIDO ---
+    async function guardarConfiguracion(event) {
+        event.preventDefault();
+        
+        const nuevaConfig = {
+            eq1Nombre: document.getElementById('cfg-eq1-nombre').value,
+            eq1Abrev: document.getElementById('cfg-eq1-abrev').value.toUpperCase(),
+            eq1Emoji: document.getElementById('cfg-eq1-emoji').value,
+            eq2Nombre: document.getElementById('cfg-eq2-nombre').value,
+            eq2Abrev: document.getElementById('cfg-eq2-abrev').value.toUpperCase(),
+            eq2Emoji: document.getElementById('cfg-eq2-emoji').value,
+            fechaCierreStr: document.getElementById('cfg-fecha').value,
+            valor: document.getElementById('cfg-valor').value,
+            nequi: document.getElementById('cfg-nequi').value
+        };
+
+        if(confirm(`¿Estás seguro de actualizar la información del partido? Esto se reflejará instantáneamente a todos los usuarios.`)) {
+            try {
+                const configRef = window.doc(window.db, "config", "estadoPartido");
+                await window.setDoc(configRef, nuevaConfig, { merge: true });
+                alert("✅ Configuración guardada correctamente.");
+                toggleConfig(); 
+            } catch(e) {
+                console.error("Error al guardar config", e);
+                alert("Error al guardar la configuración.");
+            }
+        }
+    }
+
+    // --- LÓGICA DE MARCADOR FINAL ---
+    function actualizarVistaMarcador() {
+        const scoreText = document.getElementById('final-score-text');
+        const adminControls = document.getElementById('score-admin-controls');
+
+        if (configEvento.finalizado) {
+            scoreText.innerHTML = `${configEvento.eq1Emoji} <span style="color: var(--yellow-col); font-size: 2.5rem; margin: 0 10px;">${configEvento.marcadorEq1} - ${configEvento.marcadorEq2}</span> ${configEvento.eq2Emoji}`;
+            if (adminControls) adminControls.style.display = 'none';
+        } else {
+            if (rolActual === 'admin') {
+                scoreText.innerHTML = ""; 
+                if (adminControls) adminControls.style.display = 'block';
+            } else {
+                scoreText.innerHTML = `
+                    <div class="pending-score-box">
+                        ⏳ El partido aún no ha finalizado. Esperando el marcador oficial...
+                    </div>`;
+                if (adminControls) adminControls.style.display = 'none';
+            }
+        }
+    }
+
+    async function finalizarPartido() {
+        const eq1 = document.getElementById('final-eq1').value;
+        const eq2 = document.getElementById('final-eq2').value;
+
+        if (eq1 === '' || eq2 === '') {
             alert("Debes ingresar los goles de ambos equipos.");
             return;
         }
@@ -640,59 +612,52 @@
         if (confirm("🚨 ¿Estás seguro de finalizar el partido con este marcador? Nadie más podrá apostar y se calcularán los ganadores.")) {
             const configRef = window.doc(window.db, "config", "estadoPartido");
             try {
-                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((module) => {
-                     module.setDoc(configRef, {
-                        finalizado: true,
-                        marcadorCol: parseInt(col),
-                        marcadorPor: parseInt(por)
-                    }, { merge: true });
-                });
+                await window.setDoc(configRef, {
+                    finalizado: true,
+                    marcadorEq1: parseInt(eq1),
+                    marcadorEq2: parseInt(eq2)
+                }, { merge: true });
             } catch(e) {
                 console.error("Error al finalizar partido", e);
             }
         }
     }
 
-    function actualizarVistaMarcador() {
-        const scoreText = document.getElementById('final-score-text');
-        if (partidoFinalizado) {
-            scoreText.innerHTML = `🇨🇴 <span style="color: var(--yellow-col); font-size: 2.5rem; margin: 0 10px;">${marcadorFinalCol} - ${marcadorFinalPor}</span> 🇵🇹`;
-            scoreText.style.color = "white";
-        } else {
-            scoreText.innerHTML = "⏳ Pendiente";
-            scoreText.style.color = "var(--text-muted)";
-        }
-    }
-
-    // --- REGISTRAR APUESTA ---
+    // --- REGISTRAR APUESTA (CON MEMORIA LOCAL) ---
     async function registrarApuesta(event) {
         event.preventDefault();
 
-        if (apuestas.length >= maxRows || tiempoAgotado || partidoFinalizado) return;
+        if (apuestas.length >= maxRows || tiempoAgotado || configEvento.finalizado) return;
 
         const nombre = document.getElementById('nombre').value.trim();
-        const golesCol = document.getElementById('score-col').value;
-        const golesPor = document.getElementById('score-por').value;
+        const golesEq1 = document.getElementById('score-eq1').value;
+        const golesEq2 = document.getElementById('score-eq2').value;
         const ahora = new Date();
         const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
         try {
             document.getElementById('submit-btn').disabled = true;
 
-            await window.addDoc(window.collection(window.db, "apuestas"), {
+            // Guardar registro en base de datos y extraer la ID generada automáticamente
+            const docRef = await window.addDoc(window.collection(window.db, "apuestas"), {
                 nombre: nombre,
-                col: parseInt(golesCol),
-                por: parseInt(golesPor),
+                eq1: parseInt(golesEq1),
+                eq2: parseInt(golesEq2),
                 hora: horaFormateada,
                 pagado: false,
                 timestamp: ahora.getTime() 
             });
 
-            document.getElementById('nombre').value = '';
-            document.getElementById('score-col').value = '';
-            document.getElementById('score-por').value = '';
+            // GUARDAR LA ID EN LA MEMORIA DEL NAVEGADOR (localStorage)
+            let misIds = JSON.parse(localStorage.getItem('misApuestas') || '[]');
+            misIds.push(docRef.id);
+            localStorage.setItem('misApuestas', JSON.stringify(misIds));
 
-            const msg = `Hola, acabo de registrar mi pronóstico en la polla a nombre de ${nombre}. Mi marcador fue Colombia ${golesCol} - ${golesPor} Portugal. Aquí te envío el comprobante de pago de los $10.000.`;
+            document.getElementById('nombre').value = '';
+            document.getElementById('score-eq1').value = '';
+            document.getElementById('score-eq2').value = '';
+
+            const msg = `Hola, acabo de registrar mi pronóstico en la polla a nombre de ${nombre}. Mi marcador fue ${configEvento.eq1Nombre} ${golesEq1} - ${golesEq2} ${configEvento.eq2Nombre}. Aquí te envío el comprobante de pago de los ${configEvento.valor}.`;
             window.open(`https://wa.me/573177198490?text=${encodeURIComponent(msg)}`, '_blank');
         } catch (error) {
             console.error("Error al registrar en BD:", error);
@@ -714,14 +679,11 @@
         }
     }
 
-    // --- FUNCIÓN DE REINICIO MAESTRO ---
     async function reiniciarPolla() {
-        if(confirm("⚠️ ADVERTENCIA EXTREMA ⚠️\n\n¿Estás completamente seguro de que deseas ELIMINAR TODAS LAS APUESTAS y REINICIAR EL PARTIDO? Esta acción no se puede deshacer.")) {
+        if(confirm("⚠️ ADVERTENCIA EXTREMA ⚠️\n\n¿Estás seguro de ELIMINAR TODAS LAS APUESTAS y REINICIAR EL MARCADOR? (La configuración de nombres y fechas NO se borrará).")) {
             
-            // Doble validación de seguridad
-            if(confirm("Se borrarán todos los registros de Firebase de forma permanente. Dale a Aceptar para confirmar.")) {
+            if(confirm("Se borrarán todos los registros de la tabla. Dale a Aceptar para confirmar.")) {
                 try {
-                    // 1. Borrar todas las apuestas (Operación por Lotes)
                     const querySnapshot = await window.getDocs(window.collection(window.db, "apuestas"));
                     const batch = window.writeBatch(window.db);
                     
@@ -730,21 +692,17 @@
                     });
                     await batch.commit();
 
-                    // 2. Reiniciar el marcador y estado del partido
                     const configRef = window.doc(window.db, "config", "estadoPartido");
-                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((module) => {
-                         module.setDoc(configRef, {
-                            finalizado: false,
-                            marcadorCol: null,
-                            marcadorPor: null
-                        });
-                    });
+                    await window.setDoc(configRef, {
+                        finalizado: false,
+                        marcadorEq1: null,
+                        marcadorEq2: null
+                    }, { merge: true });
 
-                    // Limpiar casillas del administrador
-                    document.getElementById('final-col').value = '';
-                    document.getElementById('final-por').value = '';
+                    document.getElementById('final-eq1').value = '';
+                    document.getElementById('final-eq2').value = '';
 
-                    alert("✅ Se han eliminado todas las apuestas y se ha reiniciado el partido exitosamente.");
+                    alert("✅ Se han eliminado todas las apuestas y se ha limpiado el marcador final.");
                 } catch(error) {
                     console.error("Error al reiniciar datos:", error);
                     alert("Hubo un problema al intentar reiniciar la base de datos.");
@@ -753,10 +711,13 @@
         }
     }
 
-    // --- RENDERIZADO DEL MOTOR DE LA TABLA ---
+    // --- RENDERIZADO DE TABLA (CON FILTRO DE PRIVACIDAD) ---
     function renderizarTabla() {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
+
+        // Obtener el listado de IDs creados en este dispositivo
+        const misIds = JSON.parse(localStorage.getItem('misApuestas') || '[]');
 
         for (let i = 0; i < maxRows; i++) {
             const tr = document.createElement('tr');
@@ -765,17 +726,32 @@
                 const apuesta = apuestas[i];
                 let estadoHTML = '';
 
+                // Determinar si esta fila pertenece al dispositivo actual
+                const esMiApuesta = misIds.includes(apuesta.id);
+
+                // CONDICIÓN MÁGICA DE VISIBILIDAD: El marcador se muestra si eres admin, si el partido terminó, o si es tu propio registro
+                const puedeVerMarcador = (rolActual === 'admin') || configEvento.finalizado || esMiApuesta;
+
+                // Definir textos dinámicos según el permiso de visualización
+                let celdaEq1 = puedeVerMarcador ? apuesta.eq1 : "?";
+                let celdaEq2 = puedeVerMarcador ? apuesta.eq2 : "?";
+                let celdaMarcadorCompleto = puedeVerMarcador 
+                    ? `<span style="color: var(--yellow-col); font-weight: bold;">${apuesta.eq1} - ${apuesta.eq2}</span>` 
+                    : `<span style="color: var(--text-muted); font-style: italic; font-size: 0.85rem;">🔒 Oculto</span>`;
+
+                const esGanador = configEvento.finalizado && apuesta.pagado && apuesta.eq1 === configEvento.marcadorEq1 && apuesta.eq2 === configEvento.marcadorEq2;
+
                 if (rolActual === 'admin') {
                     if (apuesta.pagado) {
-                        if (partidoFinalizado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) {
+                        if (esGanador) {
                             estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
-                        } else if (partidoFinalizado) {
+                        } else if (configEvento.finalizado) {
                             estadoHTML = `<span class="badge" style="background-color: var(--border); color: white;">Perdió</span>`;
                         } else {
                             estadoHTML = `<span class="badge badge-approved">Pago Aprobado ✅</span>`;
                         }
                     } else {
-                        if (partidoFinalizado) {
+                        if (configEvento.finalizado) {
                              estadoHTML = `<span class="badge" style="background-color: var(--red-col); color: white;">No Jugó (Sin Pago)</span>`;
                         } else {
                             estadoHTML = `
@@ -788,15 +764,15 @@
                     }
                 } else {
                     if (apuesta.pagado) {
-                        if (partidoFinalizado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) {
+                        if (esGanador) {
                             estadoHTML = `<span class="badge" style="background-color: var(--yellow-col); color: black;">🏆 GANADOR</span>`;
-                        } else if (partidoFinalizado) {
+                        } else if (configEvento.finalizado) {
                             estadoHTML = `<span class="badge" style="background-color: var(--border); color: white;">Perdió</span>`;
                         } else {
                             estadoHTML = `<span class="badge badge-approved">Pagado ✅</span>`;
                         }
                     } else {
-                        if (partidoFinalizado) {
+                        if (configEvento.finalizado) {
                             estadoHTML = `<span class="badge" style="background-color: var(--red-col); color: white;">Anulado (Sin Pago)</span>`;
                         } else {
                             estadoHTML = `<span class="badge badge-pending">⏳ Esperando Pago</span>`;
@@ -804,16 +780,16 @@
                     }
                 }
 
-                const filaGanadoraStyle = (partidoFinalizado && apuesta.pagado && apuesta.col === marcadorFinalCol && apuesta.por === marcadorFinalPor) 
-                                          ? 'background-color: rgba(234, 179, 8, 0.15); border-left: 4px solid var(--yellow-col);' 
-                                          : '';
+                // Resaltado visual en la fila si pertenece al apostador actual (le pone un sutil borde azul)
+                let bordePropioStyle = (!configEvento.finalizado && esMiApuesta) ? 'border-left: 4px solid var(--accent); background-color: rgba(59, 130, 246, 0.05);' : '';
+                const filaGanadoraStyle = esGanador ? 'background-color: rgba(234, 179, 8, 0.15); border-left: 4px solid var(--yellow-col);' : bordePropioStyle;
 
                 tr.innerHTML = `
                     <td class="col-index" style="${filaGanadoraStyle}">${i + 1}</td>
-                    <td style="font-weight: bold; ${filaGanadoraStyle}">${apuesta.nombre}</td>
-                    <td style="text-align: center; ${filaGanadoraStyle}">${apuesta.col}</td>
-                    <td style="text-align: center; ${filaGanadoraStyle}">${apuesta.por}</td>
-                    <td style="text-align: center; font-weight: bold; color: var(--yellow-col); ${filaGanadoraStyle}">${apuesta.col} - ${apuesta.por}</td>
+                    <td style="font-weight: bold; ${filaGanadoraStyle}">${apuesta.nombre} ${(!configEvento.finalizado && esMiApuesta) ? '<span style="color:var(--accent); font-size:0.75rem; font-weight:normal;">(Tú)</span>' : ''}</td>
+                    <td style="text-align: center; ${filaGanadoraStyle}">${celdaEq1}</td>
+                    <td style="text-align: center; ${filaGanadoraStyle}">${celdaEq2}</td>
+                    <td style="text-align: center; ${filaGanadoraStyle}">${celdaMarcadorCompleto}</td>
                     <td style="text-align: center; color: var(--text-muted); ${filaGanadoraStyle}">${apuesta.hora}</td>
                     <td style="text-align: center; ${filaGanadoraStyle}">${estadoHTML}</td>
                 `;
